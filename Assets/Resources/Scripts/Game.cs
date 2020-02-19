@@ -43,22 +43,24 @@ public sealed class Game : MonoBehaviour
     private GameObject[,] fieldObjects;                         //Поле с фишками.
     private Vector3 positionOfFirstCell;                        //Позиция первой ячейки для расстановки фишек.
     private bool isDown = true;                                 //Переменная, которая переключает на проверку: Все ли фишки после совпадения находятся на своих местах или нет.
-    private bool isEnd = false;
+    private bool isEnd = false;                                 //Переменная, отвечающая вывод меню об окончании игры.
 
-    [SerializeField] private TextMesh scoreText;
-    private ushort score = 0;
+    [SerializeField] private TextMesh scoreText;                //Текст с очками.
+    private ushort score = 0;                                   //Само количество очков.
 
-    [SerializeField] private AudioClip matchSound;
-    [SerializeField] private AudioClip endSound;
-    [SerializeField] private AudioClip choiceButton;
-    [SerializeField] private AudioSource backgroundMusic;
-    [SerializeField] private GameObject matchEffect;
-    [SerializeField] private GameObject pauseMenu;
-    [SerializeField] private GameObject endGameMenu;
-    private bool isPause = false;
+    [SerializeField] private AudioClip matchSound;              //Звук совпадения.
+    [SerializeField] private AudioClip endSound;                //Звук, который проигрывается при достижении 4000 очков.
+    [SerializeField] private AudioClip choiceButton;            //Звук при нажатии кнопки.
+    [SerializeField] private AudioSource backgroundMusic;       //Музыка, которая играет на заднем фоне.
+    [SerializeField] private GameObject matchEffect;            //Эффект, повяляющийся при совпадении фишек.
+    [SerializeField] private GameObject pauseMenu;              //Меню паузы.
+    [SerializeField] private GameObject endGameMenu;            //Меню конца игры.
+    private bool isPause = false;                               //Переменная, отвечающая за перевод игры в состояние паузы.
 
-    private float startTime;
-    private float dt = 5.0f;
+    //--------Переменные, необходимые для создания таймера--------
+    private float startTime;               //Переменная, которая содержит время начало игры.
+    private float dt = 5.0f;               //Время, через которое начинается сама игра.
+    //------------------------------------------------------------
 
     public List<GameObject> food;           //Пул фишек для их генерации на поле.
 
@@ -93,9 +95,10 @@ public sealed class Game : MonoBehaviour
 
             if (pauseMenu.transform.position == endPosition)
             {
-                if (Input.touchCount > 0)
+                if (Input.touchCount > 0 || Input.GetMouseButton(0))
                 {
-                    RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.GetTouch(0).position), Vector3.zero);
+                    RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(GetEndDot()), Vector3.zero);
+                    
                     if (hit)
                     {
                         if (hit.collider.name == "Menu_Button")
@@ -179,7 +182,6 @@ public sealed class Game : MonoBehaviour
                          * для обмена обратно на свои места. Проверка поля будет происходит в любом случае, даже если не было хода,
                          * так как в начале логического выражения стоит функция checkAllMatch().
                          */
-                        Debug.Log("!!!Проверяю совпадения и принимаю данные от пользователя!!!");
 
                         if (score >= 4000)
                         {
@@ -204,7 +206,7 @@ public sealed class Game : MonoBehaviour
                                 p0 = target;
                                 target = temp;
 
-                                swap(ref p0, ref target);
+                                Swap(ref p0, ref target);
 
                                 firstCake.GetComponent<Cake>().SetTarget = target;
                                 secondCake.GetComponent<Cake>().SetTarget = p0;
@@ -221,10 +223,10 @@ public sealed class Game : MonoBehaviour
                         }
 
                         //Читаем данные от пользователя.
-                        if (Input.touchCount > 0)
+                        if (Input.touchCount > 0 || Input.GetMouseButton(0))
                         {
                             //Проверяем, какой объект на поле пользователь задел.
-                            RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.GetTouch(0).position), Vector3.zero);
+                            RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(GetEndDot()), Vector3.zero);
 
                             if (hit)
                             {
@@ -250,7 +252,7 @@ public sealed class Game : MonoBehaviour
                                         //Если фишка была выбрана, то проверяем на допустимость их перемещения и уничтожаем селектор.
                                         if (AssetTouch(ref p0, ref target))
                                         {
-                                            swap(ref p0, ref target);
+                                            Swap(ref p0, ref target);
 
                                             firstCake.GetComponent<Cake>().SetTarget = target;
                                             secondCake.GetComponent<Cake>().SetTarget = p0;
@@ -283,9 +285,9 @@ public sealed class Game : MonoBehaviour
 
                 if (endGameMenu.transform.position == endPosition)
                 {
-                    if (Input.touchCount > 0)
+                    if (Input.touchCount > 0 || Input.GetMouseButton(0))
                     {
-                        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.GetTouch(0).position), Vector3.zero);
+                        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(GetEndDot()), Vector3.zero);
                         if (hit)
                         {
                             if (hit.collider.name == "Menu_Button")
@@ -302,6 +304,19 @@ public sealed class Game : MonoBehaviour
                     }
                 }
             }
+        }
+    }
+
+    //Функция, которая возвращает данные от пользователя в зависимости от платформы.
+    Vector3 GetEndDot()
+    {
+        if (Input.touchCount > 0)
+        {
+            return Input.GetTouch(0).position;
+        }
+        else
+        {
+            return Input.mousePosition;
         }
     }
 
@@ -343,7 +358,7 @@ public sealed class Game : MonoBehaviour
     }
 
     //Простая функция обмена значений местами.
-    private void swap(ref Point d0, ref Point d1)
+    private void Swap(ref Point d0, ref Point d1)
     {
         GameObject temp = fieldObjects[d0.GetY, d0.GetX];
         fieldObjects[d0.GetY, d0.GetX] = fieldObjects[d1.GetY, d1.GetX];
@@ -564,8 +579,6 @@ public sealed class Game : MonoBehaviour
                                 deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                 score += 35;
-                                
-                                Debug.Log("Угол четвёртой четверти!");
                             }
                             else if (fieldObjects[i + 1, j].name == fieldObjects[i, j].name && fieldObjects[i + 2, j].name == fieldObjects[i, j].name)
                             {
@@ -580,8 +593,6 @@ public sealed class Game : MonoBehaviour
                                 deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                 score += 35;
-
-                                Debug.Log("Угол третьей четверти!");
                             }
                             else if (i > 1)
                             {
@@ -598,8 +609,6 @@ public sealed class Game : MonoBehaviour
                                     deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                     score += 35;
-
-                                    Debug.Log("Угол первой четверти!");
                                 }
                                 else if (fieldObjects[i - 1, j].name == fieldObjects[i, j].name && fieldObjects[i - 2, j].name == fieldObjects[i, j].name)
                                 {
@@ -614,8 +623,6 @@ public sealed class Game : MonoBehaviour
                                     deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                     score += 35;
-
-                                    Debug.Log("Угол второй четверти");
                                 }
                             }
 
@@ -637,8 +644,6 @@ public sealed class Game : MonoBehaviour
                                     deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                     score += 35;
-
-                                    Debug.Log("Угол четвёртой четверти!");
                                 }
                                 else if (fieldObjects[i + 1, j].name == fieldObjects[i, j].name && fieldObjects[i + 2, j].name == fieldObjects[i, j].name)
                                 {
@@ -651,8 +656,6 @@ public sealed class Game : MonoBehaviour
                                     deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                     score += 35;
-
-                                    Debug.Log("Угол третьей четверти!");
                                 }
                                 else if (i > 1)
                                 {
@@ -667,8 +670,6 @@ public sealed class Game : MonoBehaviour
                                         deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                         score += 35;
-
-                                        Debug.Log("Угол первой четверти!");
                                     }
                                     else if (fieldObjects[i - 1, j].name == fieldObjects[i, j].name && fieldObjects[i - 2, j].name == fieldObjects[i, j].name)
                                     {
@@ -681,8 +682,6 @@ public sealed class Game : MonoBehaviour
                                         deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                         score += 35;
-
-                                        Debug.Log("Угол второй четверти");
                                     }
                                 }
                             }
@@ -714,8 +713,6 @@ public sealed class Game : MonoBehaviour
                             deletingCakes.Add(fieldObjects[i, MaxHorizontal - 3]);
 
                             score += 35;
-
-                            Debug.Log("Угол четвёртой четверти!");
                         }
                         else if (fieldObjects[i + 1, MaxHorizontal - 1].name == fieldObjects[i, MaxHorizontal - 1].name && fieldObjects[i + 2, MaxHorizontal - 1].name == fieldObjects[i, MaxHorizontal - 1].name)
                         {
@@ -728,8 +725,6 @@ public sealed class Game : MonoBehaviour
                             deletingCakes.Add(fieldObjects[i, MaxHorizontal - 3]);
 
                             score += 35;
-
-                            Debug.Log("Угол третьей четверти!");
                         }
                         if (i > 1)
                         {
@@ -744,8 +739,6 @@ public sealed class Game : MonoBehaviour
                                 deletingCakes.Add(fieldObjects[i, MaxHorizontal - 3]);
 
                                 score += 35;
-
-                                Debug.Log("Угол первой четвертиЙ");
                             }
                             else if (fieldObjects[i - 1, MaxHorizontal - 1].name == fieldObjects[i, MaxHorizontal - 1].name && fieldObjects[i - 2, MaxHorizontal - 1].name == fieldObjects[i, MaxHorizontal - 1].name)
                             {
@@ -758,8 +751,6 @@ public sealed class Game : MonoBehaviour
                                 deletingCakes.Add(fieldObjects[i, MaxHorizontal - 3]);
 
                                 score += 35;
-
-                                Debug.Log("Угол второй четверти!");
                             }
                         }
                     }
@@ -794,8 +785,6 @@ public sealed class Game : MonoBehaviour
                                 deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                 score += 35;
-
-                                Debug.Log("Угол первой четверти!");
                             }
                             else if (fieldObjects[i - 1, j].name == fieldObjects[i, j].name && fieldObjects[i - 2, j].name == fieldObjects[i, j].name)
                             {
@@ -810,8 +799,6 @@ public sealed class Game : MonoBehaviour
                                 deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                 score += 35;
-
-                                Debug.Log("Угол второй четверти");
                             }
 
                             if (!isAngle) --matchCount;
@@ -831,8 +818,6 @@ public sealed class Game : MonoBehaviour
                                     deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                     score += 35;
-
-                                    Debug.Log("Угол первой четверти!");
                                 }
                                 else if (fieldObjects[i - 1, j].name == fieldObjects[i, j].name && fieldObjects[i - 2, j].name == fieldObjects[i, j].name)
                                 {
@@ -845,8 +830,6 @@ public sealed class Game : MonoBehaviour
                                     deletingCakes.Add(fieldObjects[i, j - 2]);
 
                                     score += 35;
-
-                                    Debug.Log("Угол второй четверти");
                                 }
                             }
 
@@ -869,8 +852,6 @@ public sealed class Game : MonoBehaviour
                         deletingCakes.Add(fieldObjects[i, MaxHorizontal - 3]);
 
                         score += 35;
-
-                        Debug.Log("Угол второй четверти");
                     }
                 }
 
